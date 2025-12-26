@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LINE Web - プロフィール設定">
+    <meta name="author" content="Gemini programming隊">
+    <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
+    <title>プロフィール設定 - LINE Web</title>
+    
+    <style>
+        :root { --line-green: #06C755; }
+        body { font-family: sans-serif; margin: 0; background-color: #f8f8f8; }
+        .container { max-width: 500px; margin: 0 auto; min-height: 100vh; background: white; }
+        header { padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        .back-btn { cursor: pointer; font-size: 20px; margin-right: 20px; text-decoration: none; color: black; }
+        
+        .profile-form { padding: 20px; text-align: center; }
+        .profile-img { width: 100px; height: 100px; border-radius: 40px; margin-bottom: 20px; border: 2px solid #eee; }
+        
+        .input-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+        input { width: 100%; border: none; border-bottom: 1px solid #ddd; padding: 10px 0; font-size: 16px; outline: none; }
+        input:focus { border-bottom: 2px solid var(--line-green); }
+        
+        .save-btn { width: 100%; background: var(--line-green); color: white; border: none; padding: 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="index.html" class="back-btn">✕</a>
+        <span style="font-weight: bold;">プロフィール</span>
+    </header>
+
+    <div class="profile-form">
+        <img src="https://kakaomames.github.io/rei/logo.png" class="profile-img" id="display-icon">
+        
+        <div class="input-group">
+            <label>名前</label>
+            <input type="text" id="user-name" placeholder="名前を入力">
+        </div>
+
+        <div class="input-group">
+            <label>ステータスメッセージ</label>
+            <input type="text" id="status-msg" placeholder="ステータスメッセージを入力">
+        </div>
+
+        <button class="save-btn" id="save-btn">保存して戻る</button>
+    </div>
+</div>
+
+<script>
+    // 保存されたデータを読み込む
+    const savedData = JSON.parse(localStorage.getItem('line_profile') || '{"name":"カカオマメ","status":"プログラミング中"}');
+    document.getElementById('user-name').value = savedData.name;
+    document.getElementById('status-msg').value = savedData.status;
+
+    // 保存ボタンの処理
+    document.getElementById('save-btn').addEventListener('click', function() {
+        const newData = {
+            name: document.getElementById('user-name').value,
+            status: document.getElementById('status-msg').value
+        };
+        
+        // localStorageに保存
+        localStorage.setItem('line_profile', JSON.stringify(newData));
+        console.log("Profile Saved: " + JSON.stringify(newData));
+
+        // index.htmlへ戻る
+        window.location.href = 'index.html';
+    });
+</script>
+</body>
+</html>
