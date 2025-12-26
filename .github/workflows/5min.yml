@@ -1,0 +1,36 @@
+name: Fast Image Sync (5min)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # 5分ごとに起動（GitHub側の混雑で多少前後するぞ！）
+  workflow_dispatch: # 手動で即座に実行したい時用
+
+jobs:
+  sync-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install requests firebase-admin
+
+    - name: Process Pending Images
+      env:
+        FIREBASE_KEY: ${{ secrets.FIREBASE_KEY }}
+      run: python sync_images_to_github.py # 画像処理専用のスクリプトに分けると管理しやすい！
+
+    - name: Commit and Push
+      run: |
+        git config --global user.name "Gemini-Fast-Bot"
+        git config --global user.email "fast-bot@gemini.programming"
+        git add assets/uploads/
+        git commit -m "Realtime Sync: New images $(date)" || echo "No images to sync"
+        git push
