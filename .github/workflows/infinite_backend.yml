@@ -1,0 +1,39 @@
+name: Infinite Backend System
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # 6時間ごとに実行（実質無限ループ！）
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # 手動実行も可能にする
+
+jobs:
+  run-python-logic:
+    runs-on: ubuntu-latest
+    permissions: # ここでファイルの書き込みを許可する！
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install requests firebase-admin
+
+    - name: Run Backend Logic
+      env:
+        FIREBASE_KEY: ${{ secrets.FIREBASE_KEY }} # API漏洩防止！
+      run: python update_chat_logs.py
+
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name "Gemini-Bot"
+        git config --global user.email "bot@gemini.programming"
+        git add chat_db.json
+        git commit -m "Auto Update: $(date)" || echo "No changes to commit"
+        git push
