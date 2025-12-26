@@ -3,45 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Gemini programming隊によるリアルタイムチャットアプリ">
-    <meta name="keywords" content="LINE, Firebase, Gemini, Realtime, Chat">
-    <meta name="author" content="Gemini programming隊">
-    <meta property="og:title" content="LINE Web Edition Pro">
-    <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
-    <meta name="theme-color" content="#06C755">
+    <meta name="description" content="Gemini programming隊 LINE Web Realtime Chat">
     <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
-    <title>LINE Web - Gemini Programming隊</title>
-    
+    <title>LINE Web Talk - Gemini Programming隊</title>
     <style>
-        :root {
-            --line-green: #06C755;
-            --bg-blue: #7494C0;
-            --my-bubble: #8DE055;
-            --other-bubble: #FFFFFF;
-        }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-        .container { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background-color: var(--bg-blue); }
-        header { background-color: #2b3644; color: white; padding: 10px 15px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .logo { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; border: 1px solid white; }
+        :root { --line-green: #06C755; --bg-blue: #7494C0; --my-bubble: #8DE055; --other-bubble: #FFFFFF; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: var(--bg-blue); }
+        .container { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+        header { background-color: #2b3644; color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; }
+        .logo { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; }
         #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 75%; padding: 8px 12px; border-radius: 15px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .sent { align-self: flex-end; background-color: var(--my-bubble); border-top-right-radius: 2px; }
-        .received { align-self: flex-start; background-color: var(--other-bubble); border-top-left-radius: 2px; }
-        .input-area { background: white; padding: 15px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
-        input { flex: 1; border-radius: 20px; border: 1px solid #ccc; padding: 10px 15px; outline: none; }
-        button { background: var(--line-green); color: white; border: none; border-radius: 20px; padding: 0 20px; font-weight: bold; cursor: pointer; }
+        .message { max-width: 75%; padding: 8px 12px; border-radius: 15px; font-size: 14px; word-wrap: break-word; }
+        .sent { align-self: flex-end; background-color: var(--my-bubble); }
+        .received { align-self: flex-start; background-color: var(--other-bubble); }
+        
+        /* 送信エリア */
+        .input-area { background: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        input[type="text"] { flex: 1; border-radius: 20px; border: 1px solid #ccc; padding: 8px 15px; outline: none; }
+        .file-label { cursor: pointer; font-size: 24px; color: #888; }
+        #image-input { display: none; }
+        button { background: var(--line-green); color: white; border: none; border-radius: 20px; padding: 8px 15px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <img src="https://kakaomames.github.io/rei/logo.png" alt="Logo" class="logo">
-        <span>Gemini Programming隊 本部</span>
-    </header>
-    <div id="chat-window">
+        <div style="display:flex; align-items:center;">
+            <a href="index.html" style="color:white; text-decoration:none; margin-right:15px;">❮</a>
+            <img src="https://kakaomames.github.io/rei/logo.png" class="logo">
+            <span>作戦会議室</span>
         </div>
+    </header>
+
+    <div id="chat-window"></div>
+
     <div class="input-area">
+        <label for="image-input" class="file-label">📷</label>
+        <input type="file" id="image-input" accept="image/*">
         <input type="text" id="msg-input" placeholder="メッセージを入力...">
         <button id="send-btn">送信</button>
     </div>
@@ -51,7 +50,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // カカオマメ隊員の設定を適用！
     const firebaseConfig = {
         apiKey: "AIzaSyCJDDFmAhsPZankS36EKTfmKaLVA2Bfzxw",
         authDomain: "chat-1592f.firebaseapp.com",
@@ -62,57 +60,63 @@
         measurementId: "G-WMGVJG3NPK"
     };
 
-    // 初期化
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const messagesRef = ref(db, 'chat_messages');
+    const tempUploadRef = ref(db, 'temp_upload');
 
-    // 自分のIDを簡易的に作成（本来はログイン機能が必要）
-    const myId = "User_" + Math.floor(Math.random() * 1000);
-    console.log(`myId:${myId}`);
+    // プロフィール取得（localStorage）
+    const myProfile = JSON.parse(localStorage.getItem('line_profile') || '{"name":"カカオマメ"}');
+    const myName = myProfile.name;
 
     const chatWindow = document.getElementById('chat-window');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
+    const imageInput = document.getElementById('image-input');
 
-    // --- 送信処理 ---
-    function handleSend() {
+    // テキスト送信
+    function sendText() {
         const text = msgInput.value.trim();
-        if (text === "") return;
-
-        console.log(`sending_text:${text}`);
-        
-        // Firebaseにデータをプッシュ！
-        push(messagesRef, {
-            userId: myId,
-            text: text,
-            timestamp: serverTimestamp()
-        });
-
-        msgInput.value = "";
+        if (text) {
+            push(messagesRef, { sender: myName, text: text, type: 'text', timestamp: serverTimestamp() });
+            msgInput.value = "";
+        }
     }
 
-    sendBtn.addEventListener('click', handleSend);
-    msgInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSend();
-    });
+    // 画像送信（Base64変換 & Firebase Push）
+    imageInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    // --- 受信処理 (リアルタイム監視) ---
-    onChildAdded(messagesRef, (snapshot) => {
-        const data = snapshot.val();
-        console.log(`received_data:${JSON.stringify(data)}`);
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Data = reader.result.split(',')[1];
+            // 中継基地へ送信
+            push(tempUploadRef, {
+                sender: myName,
+                fileName: file.name,
+                data: base64Data,
+                timestamp: serverTimestamp()
+            });
+            // チャット欄に「送信中」の合図を出す
+            push(messagesRef, { sender: myName, text: "📷 画像を送信中...", type: 'system', timestamp: serverTimestamp() });
+            console.log("Image sent to temp_upload基地 🛰️");
+        };
+        reader.readAsDataURL(file);
+    };
 
+    sendBtn.onclick = sendText;
+    msgInput.onkeypress = (e) => { if (e.key === 'Enter') sendText(); };
+
+    // 受信表示
+    onChildAdded(messagesRef, (data) => {
+        const msg = data.val();
         const msgDiv = document.createElement('div');
-        // 送信者が自分か他人かでクラスを分ける
-        msgDiv.className = `message ${data.userId === myId ? 'sent' : 'received'}`;
-        msgDiv.textContent = data.text;
-        
+        msgDiv.className = `message ${msg.sender === myName ? 'sent' : 'received'}`;
+        msgDiv.textContent = msg.text;
         chatWindow.appendChild(msgDiv);
-        
-        // 常に最新メッセージが見えるようにスクロール
         chatWindow.scrollTop = chatWindow.scrollHeight;
     });
-
 </script>
 </body>
 </html>
